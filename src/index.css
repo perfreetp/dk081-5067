@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", "JetBrains Mono", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #5A6470 #1A1D21;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #1A1D21;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #5A6470;
+  border-radius: 0;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #8B95A1;
+}
+
+@layer components {
+  .industrial-panel {
+    @apply bg-steel-800 border border-steel-600 shadow-key-sm;
+  }
+
+  .industrial-card {
+    @apply bg-steel-700 border border-steel-500 transition-all duration-200;
+  }
+
+  .industrial-card:hover {
+    @apply border-safety-400 shadow-key;
+  }
+
+  .btn-industrial {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-mono text-sm font-bold uppercase tracking-wide bg-safety-400 text-steel-900 border border-safety-600 shadow-key-sm transition-all duration-150 hover:bg-safety-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-mono text-sm font-bold uppercase tracking-wide bg-transparent text-steel-200 border border-steel-500 transition-all duration-150 hover:bg-steel-600 hover:text-white active:translate-x-0.5 active:translate-y-0.5;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 font-mono text-sm font-bold uppercase tracking-wide bg-engine-500 text-white border border-engine-600 shadow-key-sm transition-all duration-150 hover:bg-engine-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none;
+  }
+
+  .data-label {
+    @apply font-mono text-xs uppercase tracking-wider text-steel-300;
+  }
+
+  .data-value {
+    @apply font-mono text-sm font-bold text-white;
+  }
+
+  .section-title {
+    @apply font-display text-xl font-semibold uppercase tracking-wider text-white;
+  }
+
+  .nameplate {
+    @apply bg-steel-900 border border-steel-600 p-3;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 font-mono text-xs font-bold uppercase tracking-wide border;
+  }
+
+  .score-badge-A { @apply bg-green-500/20 text-green-400 border-green-500; }
+  .score-badge-B { @apply bg-safety-400/20 text-safety-400 border-safety-400; }
+  .score-badge-C { @apply bg-engine-500/20 text-engine-400 border-engine-500; }
+  .score-badge-D { @apply bg-red-500/20 text-red-400 border-red-500; }
+}
+
+@layer utilities {
+  .text-shadow-hard {
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  }
+
+  .bg-blueprint {
+    background-color: #1A1D21;
+    background-image:
+      linear-gradient(rgba(139,149,161,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,149,161,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .bg-perforated {
+    background-color: #22272C;
+    background-image: radial-gradient(circle, rgba(0,0,0,0.2) 1px, transparent 1px);
+    background-size: 6px 6px;
+  }
+}
