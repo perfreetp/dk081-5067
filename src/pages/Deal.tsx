@@ -19,7 +19,6 @@ import {
   Send,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { equipments } from '@/data/mockData';
 import { ScoreBadge, formatPrice, formatFullPrice, emissionLabel, EquipmentTypeIcon } from '@/components/ui';
 import type { DealRecord, Evaluation } from '@/types';
 import { cn } from '@/lib/utils';
@@ -42,7 +41,8 @@ const tabConfig = [
 ];
 
 export default function Deal() {
-  const { dealRecords } = useStore();
+  const store = useStore();
+  const { dealRecords, equipments } = store;
   const [selectedId, setSelectedId] = useState(dealRecords[0]?.id ?? '');
   const [activeTab, setActiveTab] = useState('contract');
 

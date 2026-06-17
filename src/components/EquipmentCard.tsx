@@ -1,37 +1,63 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Gauge, Calendar, Plus, Check, Video, FileSearch } from 'lucide-react';
+import { MapPin, Clock, Gauge, Calendar, Plus, Check, Video, FileSearch, Lock } from 'lucide-react';
 import type { Equipment } from '@/types';
 import { useStore } from '@/store/useStore';
 import { ScoreBadge, StatusDot, formatPrice, emissionLabel, EquipmentTypeIcon } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
-export default function EquipmentCard({ equipment }: { equipment: Equipment }) {
+type Props = {
+  equipment: Equipment;
+  onInitiateContact?: (equipmentId: string) => void;
+};
+
+export default function EquipmentCard({ equipment, onInitiateContact }: Props) {
   const compareList = useStore((s) => s.compareList);
   const toggleCompare = useStore((s) => s.toggleCompare);
   const isInCompare = compareList.includes(equipment.id);
+  const isLocked = equipment.status === 'locked';
+  const isSold = equipment.status === 'sold';
+  const unavailable = isLocked || isSold;
+
+  const handleVideo = () => {
+    if (unavailable) return;
+    if (onInitiateContact) onInitiateContact(equipment.id);
+  };
 
   return (
     <div className="industrial-card group flex flex-col">
-      {/* Image */}
       <div className="relative overflow-hidden border-b border-steel-600 aspect-[4/3] bg-steel-900">
         <img
           src={equipment.coverImage}
           alt={`${equipment.brand} ${equipment.model}`}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className={cn(
+            'h-full w-full object-cover transition-transform duration-300 group-hover:scale-105',
+            unavailable && 'opacity-60 grayscale',
+          )}
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-steel-950/80 via-transparent to-transparent" />
 
-        {/* Top overlay */}
         <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
           <div className="flex items-center gap-1.5 bg-steel-950/80 backdrop-blur px-2 py-1 border border-steel-600">
             <EquipmentTypeIcon type={equipment.type} className="h-3.5 w-3.5 text-safety-400" />
             <span className="font-mono text-xs text-white">{equipment.typeLabel}</span>
           </div>
-          <ScoreBadge score={equipment.conditionScore} size="sm" />
+          <div className="flex items-center gap-1.5">
+            {isLocked && (
+              <div className="flex items-center gap-1 bg-rust-600 px-2 py-1 border border-rust-500">
+                <Lock className="h-3 w-3 text-white" />
+                <span className="font-mono text-[10px] font-bold text-white">已锁机</span>
+              </div>
+            )}
+            {isSold && (
+              <div className="flex items-center gap-1 bg-steel-600 px-2 py-1 border border-steel-500">
+                <span className="font-mono text-[10px] font-bold text-white">已成交</span>
+              </div>
+            )}
+            <ScoreBadge score={equipment.conditionScore} size="sm" />
+          </div>
         </div>
 
-        {/* Bottom overlay */}
         <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 bg-steel-950/80 backdrop-blur px-2 py-1 border border-steel-600">
             <StatusDot status={equipment.status} />
@@ -42,9 +68,7 @@ export default function EquipmentCard({ equipment }: { equipment: Equipment }) {
         </div>
       </div>
 
-      {/* Nameplate */}
       <div className="nameplate flex-1 flex flex-col">
-        {/* Title */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <h3 className="font-sans text-base font-bold text-white truncate">
@@ -60,7 +84,6 @@ export default function EquipmentCard({ equipment }: { equipment: Equipment }) {
           </div>
         </div>
 
-        {/* Specs grid */}
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
           <SpecItem icon={Gauge} label="吨位" value={`${equipment.tonnage}t`} />
           <SpecItem icon={Clock} label="工时" value={`${equipment.workHours.toLocaleString()}h`} />
@@ -68,7 +91,6 @@ export default function EquipmentCard({ equipment }: { equipment: Equipment }) {
           <SpecItem icon={Gauge} label="排放" value={emissionLabel(equipment.emission)} />
         </div>
 
-        {/* Location */}
         <div className="mt-2 flex items-center gap-1.5 text-steel-300">
           <MapPin className="h-3.5 w-3.5 text-safety-400" />
           <span className="font-mono text-xs">{equipment.city}</span>
@@ -79,7 +101,6 @@ export default function EquipmentCard({ equipment }: { equipment: Equipment }) {
           )}
         </div>
 
-        {/* Actions */}
         <div className="mt-3 pt-3 border-t border-steel-600 flex items-center gap-2">
           <Link
             to={`/inspection/${equipment.id}`}
@@ -88,17 +109,26 @@ export default function EquipmentCard({ equipment }: { equipment: Equipment }) {
             <FileSearch className="h-3.5 w-3.5" />
             验机
           </Link>
-          <Link to="/bargain" className="btn-industrial !py-1.5 !px-2 !text-xs">
+          <button
+            onClick={handleVideo}
+            disabled={unavailable}
+            className={cn(
+              'btn-industrial !py-1.5 !px-2 !text-xs',
+              unavailable && 'opacity-50 cursor-not-allowed !bg-steel-700 !border-steel-600',
+            )}
+          >
             <Video className="h-3.5 w-3.5" />
-            看车
-          </Link>
+            {isLocked ? '已锁' : '看车'}
+          </button>
           <button
             onClick={() => toggleCompare(equipment.id)}
+            disabled={isSold}
             className={cn(
               'flex items-center justify-center h-8 w-8 border transition-all',
               isInCompare
                 ? 'bg-safety-400 border-safety-600 text-steel-900'
                 : 'bg-transparent border-steel-500 text-steel-300 hover:border-safety-400 hover:text-safety-400',
+              isSold && 'opacity-50 cursor-not-allowed',
             )}
             title={isInCompare ? '移出比价' : '加入比价'}
           >

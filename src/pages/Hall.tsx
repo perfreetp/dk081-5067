@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Filter,
-  X,
   Sparkles,
   ArrowRight,
   RotateCcw,
@@ -10,14 +9,16 @@ import {
   Scale,
   Trash2,
 } from 'lucide-react';
-import { useStore } from '@/store/useStore';
-import { equipments, equipmentTypes, brands, cities, emissionStages, matchResults, demandOrders } from '@/data/mockData';
+import { useStore, useMatchResultsWithEquipments } from '@/store/useStore';
+import { equipmentTypes, brands, cities, emissionStages } from '@/data/mockData';
 import EquipmentCard from '@/components/EquipmentCard';
 import { EquipmentTypeIcon, formatPrice } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 export default function Hall() {
-  const { filters, setFilters, resetFilters, compareList, clearCompare } = useStore();
+  const navigate = useNavigate();
+  const store = useStore();
+  const { filters, setFilters, resetFilters, compareList, clearCompare, createOrGetBargainSession, demandOrders, equipments } = store;
   const [showCompare, setShowCompare] = useState(true);
 
   const filteredEquipments = useMemo(() => {
@@ -36,7 +37,7 @@ export default function Hall() {
       }
       return true;
     });
-  }, [filters]);
+  }, [filters, equipments]);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -50,24 +51,27 @@ export default function Hall() {
     return count;
   }, [filters]);
 
+  const openDemand = demandOrders.find((d) => d.status !== 'closed');
+  const recommended = openDemand ? useMatchResultsWithEquipments(openDemand.id) : [];
+
   const recommendedEquipments = useMemo(() => {
-    const openDemand = demandOrders.find((d) => d.status !== 'closed');
-    if (!openDemand) return [];
-    return (matchResults[openDemand.id] || []).map((m) => ({
-      ...m.equipment,
-      matchScore: m.matchScore,
-    }));
-  }, []);
+    return recommended.map((m) => ({ ...m.equipment, matchScore: m.matchScore }));
+  }, [recommended]);
 
   const compareEquipments = useMemo(
     () => compareList.map((id) => equipments.find((e) => e.id === id)).filter(Boolean),
-    [compareList],
+    [compareList, equipments],
   );
+
+  const goToBargain = (equipmentId: string) => {
+    createOrGetBargainSession(equipmentId);
+    navigate('/bargain');
+  };
 
   return (
     <div className="flex h-full flex-col">
       {/* Smart Recommendation Bar */}
-      {recommendedEquipments.length > 0 && (
+      {recommendedEquipments.length > 0 && openDemand && (
         <div className="bg-hazard-stripes">
           <div className="bg-steel-950/90 backdrop-blur border-b border-safety-600/50 px-6 py-2.5">
             <div className="flex items-center gap-3">
@@ -77,14 +81,14 @@ export default function Hall() {
                   智能推荐
                 </span>
                 <span className="font-mono text-xs text-steel-300 ml-1">
-                  匹配求购单 {demandOrders.find((d) => d.status !== 'closed')?.id}
+                  匹配求购单 {openDemand.id}
                 </span>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {recommendedEquipments.map((eq) => (
-                  <Link
+                  <button
                     key={eq.id}
-                    to={`/inspection/${eq.id}`}
+                    onClick={() => goToBargain(eq.id)}
                     className="group flex items-center gap-2 bg-steel-800 border border-steel-600 px-2.5 py-1 hover:border-safety-400 transition-colors shrink-0"
                   >
                     <EquipmentTypeIcon type={eq.type} className="h-3.5 w-3.5 text-safety-400" />
@@ -94,7 +98,7 @@ export default function Hall() {
                     <span className="font-mono text-xs font-bold text-safety-400">
                       {eq.matchScore}%
                     </span>
-                  </Link>
+                  </button>
                 ))}
               </div>
               <Link
@@ -128,7 +132,6 @@ export default function Hall() {
               )}
             </div>
 
-            {/* Keyword */}
             <FilterSection title="关键词搜索">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-steel-400" />
@@ -136,12 +139,11 @@ export default function Hall() {
                   value={filters.keyword ?? ''}
                   onChange={(e) => setFilters({ keyword: e.target.value })}
                   placeholder="品牌/型号/编号"
-                  className="w-full bg-steel-900 border border-steel-600 pl-8 pr-3 py-2 font-mono text-sm text-white placeholder:text-steel-500 focus:border-safety-400 focus:outline-none"
+                  className="w-full bg-steel-900 border border-steel-600 pl-8 pr-3 py-2 font-mono text-sm text-white placeholder:text-steel-600 focus:border-safety-400 focus:outline-none"
                 />
               </div>
             </FilterSection>
 
-            {/* Equipment Type */}
             <FilterSection title="机型">
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -173,7 +175,6 @@ export default function Hall() {
               </div>
             </FilterSection>
 
-            {/* Brand */}
             <FilterSection title="品牌">
               <select
                 value={filters.brand ?? ''}
@@ -187,7 +188,6 @@ export default function Hall() {
               </select>
             </FilterSection>
 
-            {/* Tonnage */}
             <FilterSection title="吨位 (吨)">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -205,7 +205,6 @@ export default function Hall() {
               </div>
             </FilterSection>
 
-            {/* Work Hours */}
             <FilterSection title="工况小时">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -226,7 +225,6 @@ export default function Hall() {
               </div>
             </FilterSection>
 
-            {/* Emission */}
             <FilterSection title="排放阶段">
               <div className="flex flex-wrap gap-2">
                 <button
@@ -257,7 +255,6 @@ export default function Hall() {
               </div>
             </FilterSection>
 
-            {/* City */}
             <FilterSection title="所在城市">
               <select
                 value={filters.city ?? ''}
@@ -275,7 +272,6 @@ export default function Hall() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Stats Bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-steel-700 bg-steel-800/50">
             <div className="flex items-center gap-4">
               <span className="font-display text-sm uppercase tracking-wider text-steel-300">
@@ -301,7 +297,6 @@ export default function Hall() {
             )}
           </div>
 
-          {/* Cards Grid */}
           <div className="p-6">
             {filteredEquipments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -319,7 +314,7 @@ export default function Hall() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-slide-in">
                 {filteredEquipments.map((eq) => (
-                  <EquipmentCard key={eq.id} equipment={eq} />
+                  <EquipmentCard key={eq.id} equipment={eq} onInitiateContact={goToBargain} />
                 ))}
               </div>
             )}
@@ -333,9 +328,7 @@ export default function Hall() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 shrink-0">
               <Scale className="h-5 w-5 text-safety-400" />
-              <span className="font-display text-sm font-semibold uppercase text-white">
-                比价清单
-              </span>
+              <span className="section-title !text-sm">比价清单</span>
               <span className="font-mono text-xs text-safety-400">{compareList.length}/4</span>
             </div>
             <div className="flex-1 flex items-center gap-2 overflow-x-auto">

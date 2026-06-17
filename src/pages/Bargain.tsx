@@ -14,14 +14,13 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import { equipments } from '@/data/mockData';
 import { ScoreBadge, formatPrice, formatFullPrice, emissionLabel, EquipmentTypeIcon } from '@/components/ui';
 import type { FreightMode, TaxMode } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function Bargain() {
-  const { bargainSessions, activeSessionId, setActiveSession, sendMessage, setFreightMode, setTaxMode, lockEquipment } =
-    useStore();
+  const store = useStore();
+  const { bargainSessions, activeSessionId, setActiveSession, sendMessage, setFreightMode, setTaxMode, lockEquipment, equipments } = store;
   const [inputMessage, setInputMessage] = useState('');
   const [inputAmount, setInputAmount] = useState('');
   const [depositInput, setDepositInput] = useState('');
@@ -62,7 +61,10 @@ export default function Bargain() {
 
   const handleLock = () => {
     const deposit = Number(depositInput) || Math.round((activeSession.lastPrice ?? 0) * 0.2);
-    lockEquipment(activeSession.id, deposit);
+    const equipmentId = sessionEquipments[0]?.id;
+    if (equipmentId) {
+      lockEquipment(activeSession.id, deposit, equipmentId);
+    }
     setDepositInput('');
   };
 
@@ -74,7 +76,6 @@ export default function Bargain() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* Session Selector */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-steel-700 bg-steel-800 overflow-x-auto">
         <span className="data-label shrink-0">议价会话</span>
         {bargainSessions.map((s) => {
@@ -98,7 +99,6 @@ export default function Bargain() {
         })}
       </div>
 
-      {/* Compare Table */}
       <div className="border-b border-steel-700 bg-steel-800/50 overflow-x-auto">
         <div className="px-4 py-2 flex items-center gap-2 border-b border-steel-700">
           <Scale className="h-4 w-4 text-safety-400" />
@@ -141,9 +141,7 @@ export default function Bargain() {
         </table>
       </div>
 
-      {/* Chat + Calculator */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Chat Panel */}
         <div className="flex-1 flex flex-col bg-steel-900">
           <div className="px-4 py-2 border-b border-steel-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -160,7 +158,6 @@ export default function Bargain() {
             <span className="font-mono text-xs text-steel-400">议价记录全程留痕</span>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {activeSession.messages.map((msg, i) => (
               <div
@@ -197,7 +194,6 @@ export default function Bargain() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
           <div className="border-t border-steel-700 p-3 bg-steel-800">
             <div className="flex items-center gap-2 mb-2">
               <input
@@ -226,17 +222,14 @@ export default function Bargain() {
           </div>
         </div>
 
-        {/* Fee Calculator + Lock Panel */}
         <aside className="w-80 shrink-0 border-l border-steel-700 bg-steel-800 overflow-y-auto">
           <div className="p-4 space-y-4">
-            {/* Fee Calculator */}
             <div className="nameplate">
               <div className="flex items-center gap-2 mb-3">
                 <Receipt className="h-4 w-4 text-safety-400" />
                 <span className="section-title !text-sm">费用计算器</span>
               </div>
 
-              {/* Last Price */}
               <div className="bg-steel-950 border border-steel-600 p-3 mb-3 text-center">
                 <span className="data-label">最新报价</span>
                 <div className="font-display text-3xl font-bold text-safety-400 mt-1">
@@ -244,7 +237,6 @@ export default function Bargain() {
                 </div>
               </div>
 
-              {/* Freight Mode */}
               <div className="mb-3">
                 <span className="data-label block mb-2">运费分摊</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -272,7 +264,6 @@ export default function Bargain() {
                 )}
               </div>
 
-              {/* Tax Mode */}
               <div className="mb-3">
                 <span className="data-label block mb-2">含税口径</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -300,7 +291,6 @@ export default function Bargain() {
                 )}
               </div>
 
-              {/* Total */}
               <div className="bg-safety-400/10 border border-safety-400/50 p-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="data-label">设备价格</span>
@@ -325,7 +315,6 @@ export default function Bargain() {
               </div>
             </div>
 
-            {/* Deposit Lock Panel */}
             <div className={cn(
               'border p-4',
               isLocked ? 'bg-engine-500/10 border-engine-500/50' : 'nameplate',

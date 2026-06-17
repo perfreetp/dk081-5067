@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   ClipboardList,
@@ -14,8 +14,7 @@ import {
   Target,
   Sparkles,
 } from 'lucide-react';
-import { useStore } from '@/store/useStore';
-import { matchResults } from '@/data/mockData';
+import { useStore, useMatchResultsWithEquipments } from '@/store/useStore';
 import type { DemandOrder, EquipmentType, EmissionStage } from '@/types';
 import { equipmentTypes, emissionStages, cities } from '@/data/mockData';
 import { EquipmentTypeIcon, ScoreBadge, formatPrice, emissionLabel } from '@/components/ui';
@@ -28,9 +27,14 @@ const statusConfig = {
 };
 
 export default function Demand() {
-  const { demandOrders, addDemandOrder, closeDemandOrder } = useStore();
+  const navigate = useNavigate();
+  const store = useStore();
+  const { demandOrders, addDemandOrder, closeDemandOrder, createOrGetBargainSession } = store;
   const [showForm, setShowForm] = useState(false);
-  const [selectedDemand, setSelectedDemand] = useState<DemandOrder | null>(null);
+  const [selectedDemandId, setSelectedDemandId] = useState<string | null>(null);
+
+  const selectedDemand = demandOrders.find((d) => d.id === selectedDemandId) || null;
+  const matches = selectedDemand ? useMatchResultsWithEquipments(selectedDemand.id) : [];
 
   const stats = {
     total: demandOrders.length,
@@ -39,9 +43,13 @@ export default function Demand() {
     closed: demandOrders.filter((d) => d.status === 'closed').length,
   };
 
+  const goToBargain = (equipmentId: string) => {
+    createOrGetBargainSession(equipmentId);
+    navigate('/bargain');
+  };
+
   return (
     <div className="flex h-full flex-col">
-      {/* Stats Bar */}
       <div className="grid grid-cols-4 gap-3 p-4 border-b border-steel-700 bg-steel-800/50">
         <StatCard label="需求总数" value={stats.total} icon={ClipboardList} color="text-white" />
         <StatCard label="报价中" value={stats.quoting} icon={TrendingUp} color="text-safety-400" />
@@ -50,7 +58,6 @@ export default function Demand() {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Kanban Board */}
         <div className="flex-1 overflow-y-auto p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -84,9 +91,9 @@ export default function Demand() {
                       <DemandCard
                         key={demand.id}
                         demand={demand}
-                        onClick={() => setSelectedDemand(demand)}
+                        onClick={() => setSelectedDemandId(demand.id)}
                         onClose={() => closeDemandOrder(demand.id)}
-                        isSelected={selectedDemand?.id === demand.id}
+                        isSelected={selectedDemandId === demand.id}
                       />
                     ))}
                     {items.length === 0 && (
@@ -101,7 +108,6 @@ export default function Demand() {
           </div>
         </div>
 
-        {/* Match Results Panel */}
         {selectedDemand && (
           <aside className="w-96 shrink-0 border-l border-steel-700 bg-steel-800 overflow-y-auto">
             <div className="sticky top-0 bg-steel-800 border-b border-steel-600 px-4 py-3 flex items-center justify-between z-10">
@@ -109,7 +115,7 @@ export default function Demand() {
                 <Target className="h-4 w-4 text-safety-400" />
                 <span className="section-title !text-base">匹配推荐</span>
               </div>
-              <button onClick={() => setSelectedDemand(null)} className="text-steel-400 hover:text-white">
+              <button onClick={() => setSelectedDemandId(null)} className="text-steel-400 hover:text-white">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -149,7 +155,7 @@ export default function Demand() {
                 )}
               </div>
 
-              {(matchResults[selectedDemand.id] || []).map((result) => (
+              {matches.map((result) => (
                 <div key={result.equipment.id} className="industrial-card mb-3 p-3">
                   <div className="flex items-start gap-3">
                     <div className="relative shrink-0">
@@ -193,20 +199,30 @@ export default function Demand() {
                       </div>
                     </div>
                   </div>
-                  <Link
-                    to={`/inspection/${result.equipment.id}`}
-                    className="mt-2 w-full btn-ghost !py-1.5 !text-xs flex"
-                  >
-                    查看验机报告
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Link
+                      to={`/inspection/${result.equipment.id}`}
+                      className="flex-1 btn-ghost !py-1.5 !text-xs flex justify-center"
+                    >
+                      查看验机报告
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
+                    <button
+                      onClick={() => goToBargain(result.equipment.id)}
+                      className="flex-1 btn-industrial !py-1.5 !text-xs"
+                      disabled={result.equipment.status === 'locked' || result.equipment.status === 'sold'}
+                    >
+                      发起看车
+                    </button>
+                  </div>
                 </div>
               ))}
 
-              {(!matchResults[selectedDemand.id] || matchResults[selectedDemand.id].length === 0) && (
+              {matches.length === 0 && (
                 <div className="text-center py-8">
                   <Target className="h-8 w-8 text-steel-600 mx-auto mb-2" />
-                  <p className="font-mono text-xs text-steel-500">系统匹配中，请稍候...</p>
+                  <p className="font-mono text-xs text-steel-500">暂无匹配车源</p>
+                  <p className="font-mono text-[10px] text-steel-600 mt-1">调整预算或进场城市后重试</p>
                 </div>
               )}
             </div>
@@ -214,13 +230,13 @@ export default function Demand() {
         )}
       </div>
 
-      {/* Publish Form Modal */}
       {showForm && (
         <PublishForm
           onClose={() => setShowForm(false)}
           onSubmit={(data) => {
-            addDemandOrder(data);
+            const id = addDemandOrder(data);
             setShowForm(false);
+            setSelectedDemandId(id);
           }}
         />
       )}
@@ -320,7 +336,6 @@ function PublishForm({ onClose, onSubmit }: { onClose: () => void; onSubmit: (da
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Basic Info */}
           <FormSection title="基础信息">
             <div className="grid grid-cols-2 gap-3">
               <FormField label="机型">
@@ -345,7 +360,6 @@ function PublishForm({ onClose, onSubmit }: { onClose: () => void; onSubmit: (da
             </div>
           </FormSection>
 
-          {/* Budget & Timeline */}
           <FormSection title="预算与工期">
             <div className="grid grid-cols-2 gap-3">
               <FormField label="预算下限 (元)">
@@ -375,7 +389,6 @@ function PublishForm({ onClose, onSubmit }: { onClose: () => void; onSubmit: (da
             </div>
           </FormSection>
 
-          {/* Location & Emission */}
           <FormSection title="进场要求">
             <div className="grid grid-cols-2 gap-3">
               <FormField label="进场地点">

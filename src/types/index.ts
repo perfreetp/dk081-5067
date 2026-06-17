@@ -25,6 +25,32 @@ export interface Equipment {
   matchReasons?: string[];
 }
 
+export interface VideoSession {
+  equipmentId: string;
+  playing: boolean;
+  startAt?: string;
+}
+
+export interface InspectionBooking {
+  id: string;
+  equipmentId: string;
+  date: string;
+  time: string;
+  location: string;
+  contactName: string;
+  contactPhone: string;
+  createdAt: string;
+  status: 'pending' | 'confirmed' | 'completed';
+}
+
+export interface MaintenanceRecord { date: string; item: string; note: string; }
+export interface ReplacedPart { part: string; brand: string; date: string; hours: number; }
+export interface AccidentRecord { date: string; description: string; repaired: boolean; }
+export interface MaintenanceUpdate {
+  type: 'maintenance' | 'part' | 'accident';
+  equipmentId: string;
+}
+
 export interface EquipmentFilter {
   type?: EquipmentType | '';
   brand?: string;
@@ -46,9 +72,9 @@ export interface InspectionReport {
   coldStartVideo: { url: string; duration: string; thumbnail: string };
   nameplate: { url: string; info: Record<string, string> };
   documents: { type: string; url: string; status: 'verified' | 'pending' }[];
-  maintenanceRecords: { date: string; item: string; note: string }[];
-  replacedParts: { part: string; brand: string; date: string; hours: number }[];
-  accidentHistory: { date: string; description: string; repaired: boolean }[];
+  maintenanceRecords: MaintenanceRecord[];
+  replacedParts: ReplacedPart[];
+  accidentHistory: AccidentRecord[];
   scores: { engine: number; hydraulic: number; chassis: number; appearance: number };
   overallScore: ConditionScore;
   inspector: string;
