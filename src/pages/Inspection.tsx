@@ -28,6 +28,7 @@ import {
   User,
   Phone,
   Map,
+  Lock,
 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { ScoreBadge, StatusDot, formatPrice, emissionLabel, EquipmentTypeIcon } from '@/components/ui';
@@ -128,9 +129,20 @@ export default function Inspection() {
             <Scale className="h-3.5 w-3.5" />
             {isInCompare ? '已加入比价' : '加入比价'}
           </button>
-          <button onClick={goToBargain} className="btn-industrial !py-1.5 !text-xs">
-            <VideoIcon className="h-3.5 w-3.5" />
-            发起看车
+          <button onClick={goToBargain} disabled={equipment.status === 'locked' || equipment.status === 'sold'} className={cn('btn-industrial !py-1.5 !text-xs', (equipment.status === 'locked' || equipment.status === 'sold') && 'opacity-50 cursor-not-allowed !bg-steel-700 !border-steel-600')}>
+            {equipment.status === 'locked' ? (
+              <>
+                <Lock className="h-3.5 w-3.5" />
+                已锁机
+              </>
+            ) : equipment.status === 'sold' ? (
+              '已成交'
+            ) : (
+              <>
+                <VideoIcon className="h-3.5 w-3.5" />
+                发起看车
+              </>
+            )}
           </button>
         </div>
 
@@ -467,10 +479,21 @@ export default function Inspection() {
             )}
 
             <div className="mt-4 space-y-2">
-              <button onClick={goToBargain} className="btn-industrial w-full">
-                <VideoIcon className="h-4 w-4" />
-                发起视频看车
-              </button>
+              {equipment.status === 'locked' ? (
+                <Link to="/deal" className="btn-industrial w-full flex justify-center">
+                  <Lock className="h-4 w-4" />
+                  已锁机 · 查看交易
+                </Link>
+              ) : equipment.status === 'sold' ? (
+                <button disabled className="btn-industrial w-full opacity-50 cursor-not-allowed !bg-steel-700 !border-steel-600">
+                  已成交
+                </button>
+              ) : (
+                <button onClick={goToBargain} className="btn-industrial w-full">
+                  <VideoIcon className="h-4 w-4" />
+                  发起视频看车
+                </button>
+              )}
               {!booking ? (
                 <button onClick={() => setShowBookingForm(true)} className="btn-ghost w-full">
                   <CalendarCheck className="h-4 w-4" />

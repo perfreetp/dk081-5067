@@ -61,7 +61,7 @@ export default function Bargain() {
 
   const handleLock = () => {
     const deposit = Number(depositInput) || Math.round((activeSession.lastPrice ?? 0) * 0.2);
-    const equipmentId = sessionEquipments[0]?.id;
+    const equipmentId = activeSession.focusEquipmentId ?? sessionEquipments[0]?.id;
     if (equipmentId) {
       lockEquipment(activeSession.id, deposit, equipmentId);
     }
@@ -122,6 +122,9 @@ export default function Bargain() {
                       <EquipmentTypeIcon type={eq.type} className="h-4 w-4 text-safety-400" />
                       <span className="font-sans text-sm font-bold text-white">{eq.brand}</span>
                       <ScoreBadge score={eq.conditionScore} size="sm" />
+                      {eq.id === activeSession.focusEquipmentId && (
+                        <span className="font-mono text-[9px] font-bold text-engine-400 bg-engine-500/20 border border-engine-500/50 px-1 py-0.5">锁定目标</span>
+                      )}
                     </div>
                     <div className="font-mono text-xs text-steel-400">{eq.model}</div>
                   </Link>
@@ -355,6 +358,17 @@ export default function Bargain() {
                         支付订金后设备锁定3天，卖家不可再售
                       </span>
                     </div>
+                    {(() => {
+                      const focusEq = sessionEquipments.find((e) => e && e.id === activeSession.focusEquipmentId) ?? sessionEquipments[0];
+                      return focusEq ? (
+                        <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-steel-700">
+                          <Lock className="h-3.5 w-3.5 text-engine-400" />
+                          <span className="font-mono text-xs text-engine-400">锁定目标：</span>
+                          <span className="font-sans text-xs font-bold text-white">{focusEq.brand} {focusEq.model}</span>
+                          <span className="font-mono text-[10px] text-steel-400">{focusEq.id}</span>
+                        </div>
+                      ) : null;
+                    })()}
                     <div className="flex items-center justify-between">
                       <span className="data-label">建议订金（20%）</span>
                       <span className="font-mono text-sm font-bold text-safety-400">

@@ -52,7 +52,7 @@ export default function Hall() {
   }, [filters]);
 
   const openDemand = demandOrders.find((d) => d.status !== 'closed');
-  const recommended = openDemand ? useMatchResultsWithEquipments(openDemand.id) : [];
+  const recommended = useMatchResultsWithEquipments(openDemand?.id);
 
   const recommendedEquipments = useMemo(() => {
     return recommended.map((m) => ({ ...m.equipment, matchScore: m.matchScore }));
@@ -85,21 +85,29 @@ export default function Hall() {
                 </span>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {recommendedEquipments.map((eq) => (
-                  <button
-                    key={eq.id}
-                    onClick={() => goToBargain(eq.id)}
-                    className="group flex items-center gap-2 bg-steel-800 border border-steel-600 px-2.5 py-1 hover:border-safety-400 transition-colors shrink-0"
-                  >
-                    <EquipmentTypeIcon type={eq.type} className="h-3.5 w-3.5 text-safety-400" />
-                    <span className="font-mono text-xs text-white whitespace-nowrap">
-                      {eq.brand} {eq.model}
-                    </span>
-                    <span className="font-mono text-xs font-bold text-safety-400">
-                      {eq.matchScore}%
-                    </span>
-                  </button>
-                ))}
+                {recommendedEquipments.map((eq) => {
+                  const unavailable = eq.status === 'locked' || eq.status === 'sold';
+                  return (
+                    <button
+                      key={eq.id}
+                      onClick={() => !unavailable && goToBargain(eq.id)}
+                      disabled={unavailable}
+                      className={cn(
+                        'group flex items-center gap-2 bg-steel-800 border border-steel-600 px-2.5 py-1 transition-colors shrink-0',
+                        unavailable ? 'opacity-40 cursor-not-allowed' : 'hover:border-safety-400',
+                      )}
+                    >
+                      <EquipmentTypeIcon type={eq.type} className="h-3.5 w-3.5 text-safety-400" />
+                      <span className="font-mono text-xs text-white whitespace-nowrap">
+                        {eq.brand} {eq.model}
+                      </span>
+                      <span className="font-mono text-xs font-bold text-safety-400">
+                        {eq.matchScore}%
+                      </span>
+                      {unavailable && <span className="font-mono text-[9px] text-engine-400">{eq.status === 'locked' ? '已锁' : '已售'}</span>}
+                    </button>
+                  );
+                })}
               </div>
               <Link
                 to="/demand"

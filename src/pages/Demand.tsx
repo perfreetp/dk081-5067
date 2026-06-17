@@ -34,7 +34,7 @@ export default function Demand() {
   const [selectedDemandId, setSelectedDemandId] = useState<string | null>(null);
 
   const selectedDemand = demandOrders.find((d) => d.id === selectedDemandId) || null;
-  const matches = selectedDemand ? useMatchResultsWithEquipments(selectedDemand.id) : [];
+  const matches = useMatchResultsWithEquipments(selectedDemandId ?? undefined);
 
   const stats = {
     total: demandOrders.length,
@@ -209,10 +209,13 @@ export default function Demand() {
                     </Link>
                     <button
                       onClick={() => goToBargain(result.equipment.id)}
-                      className="flex-1 btn-industrial !py-1.5 !text-xs"
                       disabled={result.equipment.status === 'locked' || result.equipment.status === 'sold'}
+                      className={cn(
+                        'flex-1 btn-industrial !py-1.5 !text-xs',
+                        (result.equipment.status === 'locked' || result.equipment.status === 'sold') && 'opacity-50 cursor-not-allowed !bg-steel-700 !border-steel-600',
+                      )}
                     >
-                      发起看车
+                      {result.equipment.status === 'locked' ? '已锁机' : result.equipment.status === 'sold' ? '已成交' : '发起看车'}
                     </button>
                   </div>
                 </div>

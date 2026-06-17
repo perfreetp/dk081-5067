@@ -71,6 +71,7 @@ interface AppState {
 
   dealRecords: DealRecord[];
   confirmContractClause: (dealId: string, index: number) => void;
+  signContract: (dealId: string) => void;
   setSpecialTerms: (dealId: string, terms: string) => void;
   toggleTransferDoc: (dealId: string, index: number) => void;
   payItem: (dealId: string, index: number) => void;
@@ -235,7 +236,12 @@ export const useStore = create<AppState>()(
       createOrGetBargainSession: (equipmentId) => {
         const existing = get().bargainSessions.find((s) => s.equipmentIds.includes(equipmentId));
         if (existing) {
-          set({ activeSessionId: existing.id });
+          set((state) => ({
+            activeSessionId: existing.id,
+            bargainSessions: state.bargainSessions.map((s) =>
+              s.id === existing.id ? { ...s, focusEquipmentId: equipmentId } : s,
+            ),
+          }));
           const compareList = get().compareList;
           if (!compareList.includes(equipmentId)) {
             set({ compareList: [...compareList, equipmentId] });
@@ -247,6 +253,7 @@ export const useStore = create<AppState>()(
         const newSession: BargainSession = {
           id,
           equipmentIds: [equipmentId],
+          focusEquipmentId: equipmentId,
           messages: [
             {
               from: 'seller',
@@ -291,11 +298,13 @@ export const useStore = create<AppState>()(
           bargainSessions: state.bargainSessions.map((s) => (s.id === sessionId ? { ...s, taxMode: mode } : s)),
         })),
       lockEquipment: (sessionId, deposit, equipmentId) => {
+        const targetEq = get().equipments.find((e) => e.id === equipmentId);
+        if (targetEq?.status === 'locked') return;
         const deadline = new Date();
         deadline.setDate(deadline.getDate() + 3);
         set((state) => ({
           bargainSessions: state.bargainSessions.map((s) =>
-            s.id === sessionId ? { ...s, depositAmount: deposit, lockDeadline: deadline.toISOString() } : s,
+            s.id === sessionId ? { ...s, depositAmount: deposit, lockDeadline: deadline.toISOString(), focusEquipmentId: equipmentId } : s,
           ),
           equipments: state.equipments.map((e) => (e.id === equipmentId ? { ...e, status: 'locked' } : e)),
         }));
@@ -336,6 +345,26 @@ export const useStore = create<AppState>()(
               : d,
           ),
         })),
+      signContract: (dealId) =>
+        set((state) => {
+          const deal = state.dealRecords.find((d) => d.id === dealId);
+          if (!deal) return {};
+          if (deal.contractConfirmed) return {};
+          if (!deal.contractClauses.every((c) => c.confirmed)) return {};
+          const now = new Date().toLocaleString('zh-CN', { hour12: false });
+          const timeline = deal.timeline.map((t) =>
+            t.node === 'contract' ? { ...t, status: 'done' as const, timestamp: now, operator: '双方签署' } : t,
+          );
+          const nextIdx = timeline.findIndex((t) => t.status === 'pending');
+          if (nextIdx !== -1) {
+            timeline[nextIdx] = { ...timeline[nextIdx], status: 'current' as const };
+          }
+          return {
+            dealRecords: state.dealRecords.map((d) =>
+              d.id === dealId ? { ...d, contractConfirmed: true, timeline } : d,
+            ),
+          };
+        }),
       setSpecialTerms: (dealId, terms) =>
         set((state) => ({
           dealRecords: state.dealRecords.map((d) => (d.id === dealId ? { ...d, specialTerms: terms } : d)),
@@ -429,10 +458,10 @@ export const useStore = create<AppState>()(
   ),
 );
 
-export function useMatchResultsWithEquipments(demandId: string) {
+export function useMatchResultsWithEquipments(demandId: string | undefined) {
   const matchMap = useStore((s) => s.matchResults);
   const equipments = useStore((s) => s.equipments);
-  const localMatches = matchMap[demandId] ?? [];
+  const localMatches = (demandId ? matchMap[demandId] : undefined) ?? [];
   return localMatches
     .map((m) => {
       const eq = equipments.find((e) => e.id === m.equipmentId);

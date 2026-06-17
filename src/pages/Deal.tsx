@@ -255,8 +255,9 @@ export default function Deal() {
 }
 
 function ContractTab({ deal }: { deal: DealRecord }) {
-  const { confirmContractClause, setSpecialTerms } = useStore();
+  const { confirmContractClause, setSpecialTerms, signContract } = useStore();
   const allConfirmed = deal.contractClauses.every((c) => c.confirmed);
+  const signed = deal.contractConfirmed;
 
   return (
     <div className="animate-slide-in max-w-3xl">
@@ -314,29 +315,42 @@ function ContractTab({ deal }: { deal: DealRecord }) {
       {/* Confirmation Status */}
       <div className={cn(
         'flex items-center gap-3 p-4 border',
-        allConfirmed
+        signed
           ? 'bg-green-500/10 border-green-500/50'
-          : 'bg-safety-400/10 border-safety-400/50',
+          : allConfirmed
+            ? 'bg-safety-400/10 border-safety-400/50'
+            : 'bg-steel-800 border-steel-600',
       )}>
-        {allConfirmed ? (
+        {signed ? (
           <>
             <ShieldCheck className="h-5 w-5 text-green-400" />
-            <span className="font-display text-sm font-bold text-green-400">合同条款已全部确认</span>
+            <span className="font-display text-sm font-bold text-green-400">合同已签署，进入下一节点</span>
+          </>
+        ) : allConfirmed ? (
+          <>
+            <ShieldCheck className="h-5 w-5 text-safety-400" />
+            <span className="font-display text-sm font-bold text-safety-400">条款已全部确认，可签署合同</span>
           </>
         ) : (
           <>
-            <Clock className="h-5 w-5 text-safety-400" />
-            <span className="font-display text-sm font-bold text-safety-400">
+            <Clock className="h-5 w-5 text-steel-400" />
+            <span className="font-display text-sm font-bold text-steel-300">
               待确认 {deal.contractClauses.filter((c) => !c.confirmed).length} 项条款
             </span>
           </>
         )}
         <button
-          className={cn('ml-auto btn-industrial', allConfirmed && '!bg-green-500 !border-green-600 hover:!bg-green-400')}
-          disabled={!allConfirmed}
+          onClick={() => signContract(deal.id)}
+          disabled={!allConfirmed || signed}
+          className={cn(
+            'ml-auto btn-industrial',
+            signed && '!bg-green-500 !border-green-600 hover:!bg-green-500 opacity-70 cursor-default',
+            allConfirmed && !signed && '!bg-green-500 !border-green-600 hover:!bg-green-400',
+            !allConfirmed && 'opacity-50 cursor-not-allowed',
+          )}
         >
           <FileSignature className="h-4 w-4" />
-          签署合同
+          {signed ? '已签署' : '签署合同'}
         </button>
       </div>
     </div>

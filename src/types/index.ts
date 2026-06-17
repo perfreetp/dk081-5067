@@ -119,6 +119,7 @@ export interface BargainMessage {
 export interface BargainSession {
   id: string;
   equipmentIds: string[];
+  focusEquipmentId?: string;
   messages: BargainMessage[];
   freightMode: FreightMode;
   freightCost: number;
